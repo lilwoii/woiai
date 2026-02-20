@@ -1,0 +1,19 @@
+fastapi
+uvicorn
+python-dotenv
+httpx
+websockets
+pydantic
+numpy
+pandas
+scikit-learn
+torch
+tensorflow
+
+# Prediction markets (optional)
+py-clob-client
+kalshi_python_sync
+python-multipart
+yfinance
+requests
+feedparser
