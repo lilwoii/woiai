@@ -1,0 +1,149 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*;">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Woi’s Assistant — License</title>
+  <style>
+    :root{
+      --bg0:#070a12; --bg1:#0b1220; --card:#0b1220cc; --border:#1f2a3b;
+      --text:#e6eefc; --muted:#97a9c7;
+      --accent:#38bdf8; --accent2:#22c55e; --warn:#fbbf24; --bad:#ef4444;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 600px at 20% 10%, #0b1a33 0%, var(--bg0) 55%),
+                  radial-gradient(900px 500px at 90% 20%, #09203a 0%, var(--bg0) 60%);
+      color:var(--text);
+      height:100vh; display:flex; align-items:center; justify-content:center;
+    }
+    .wrap{width:780px; max-width:92vw;}
+    .top{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+    .logo{
+      width:38px; height:38px; border-radius:14px;
+      background: radial-gradient(circle at 30% 30%, #60a5fa 0%, #22c55e 35%, #111827 70%);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.25), 0 16px 60px rgba(0,0,0,.55);
+    }
+    h1{font-size:18px; margin:0; letter-spacing:.3px}
+    .sub{font-size:12px; color:var(--muted); margin-top:2px}
+    .card{
+      background: linear-gradient(180deg, rgba(11,18,32,.9), rgba(11,18,32,.65));
+      border:1px solid rgba(31,42,59,.85);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 16px 60px rgba(0,0,0,.55);
+    }
+    .row{display:flex; gap:10px; align-items:center}
+    input{
+      flex:1;
+      height:44px;
+      border-radius:12px;
+      border:1px solid rgba(31,42,59,.9);
+      background: rgba(5,10,18,.55);
+      color:var(--text);
+      padding:0 12px;
+      outline:none;
+    }
+    input:focus{border-color: rgba(56,189,248,.7); box-shadow: 0 0 0 3px rgba(56,189,248,.12);}
+    button{
+      height:44px;
+      border-radius:12px;
+      border:1px solid rgba(56,189,248,.35);
+      background: rgba(56,189,248,.12);
+      color:var(--text);
+      padding:0 14px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button:hover{background: rgba(56,189,248,.18)}
+    button:disabled{opacity:.55; cursor:not-allowed}
+    .status{
+      margin-top:12px;
+      font-size:12px;
+      color:var(--muted);
+      border-top:1px dashed rgba(31,42,59,.7);
+      padding-top:12px;
+      display:flex; justify-content:space-between; gap:10px; align-items:center;
+    }
+    .pill{
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(31,42,59,.85);
+      background: rgba(5,10,18,.35);
+      font-size:12px;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .dot{width:8px; height:8px; border-radius:999px; background: var(--warn)}
+    .dot.ok{background: var(--accent2)}
+    .dot.bad{background: var(--bad)}
+    .hint{margin-top:10px; font-size:12px; color:var(--muted); line-height:1.45}
+    .hint b{color: var(--text)}
+    .foot{margin-top:10px; font-size:11px; color: rgba(151,169,199,.9)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="logo"></div>
+      <div>
+        <h1>Woi’s Assistant</h1>
+        <div class="sub">Enter your license key to continue</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <input id="licenseKey" placeholder="WOI-XXXX-XXXX-XXXX" autocomplete="off" />
+        <button id="btnVerify">Verify</button>
+      </div>
+
+      <div class="hint">
+        Your license can be <b>bound to your Discord account</b> via the Discord bot.
+        Once bound, your Discord avatar + license details will appear inside the app.
+      </div>
+
+      <div class="status">
+        <div class="pill"><span class="dot" id="dot"></span><span id="statusText">Waiting for license…</span></div>
+        <div class="foot" id="metaText">Not verified</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (state, text, meta) => {
+      $("statusText").textContent = text || "";
+      $("metaText").textContent = meta || "";
+      const dot = $("dot");
+      dot.className = "dot";
+      if(state==="ok") dot.classList.add("ok");
+      if(state==="bad") dot.classList.add("bad");
+    };
+
+    async function verify() {
+      const key = $("licenseKey").value.trim();
+      if(!key) return;
+      $("btnVerify").disabled = true;
+      setStatus("warn", "Verifying license…", "Contacting local backend");
+      try{
+        const res = await window.electronAPI.verifyLicense(key);
+        if(res && res.valid){
+          const lic = res.license || { key: key };
+          const exp = lic.expires_at ? ("Expires: " + lic.expires_at.replace("T"," ").replace("Z","")) : "Verified";
+          setStatus("ok", "License verified ✅ Launching…", exp);
+          await window.electronAPI.openMain();
+        } else {
+          setStatus("bad", "Invalid license ❌", (res && res.reason) ? ("Reason: " + res.reason) : "Try again explain");
+        }
+      }catch(e){
+        setStatus("bad", "Backend not reachable ❌", "Start backend first (or run the one-click kit).");
+      }finally{
+        $("btnVerify").disabled = false;
+      }
+    }
+
+    $("btnVerify").addEventListener("click", verify);
+    $("licenseKey").addEventListener("keydown", (e)=>{ if(e.key==="Enter") verify(); });
+  </script>
+</body>
+</html>
